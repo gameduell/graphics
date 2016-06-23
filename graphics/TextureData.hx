@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 package graphics;
 
 import types.Data;
@@ -37,6 +37,8 @@ extern class TextureData
     public var hasPremultipliedAlpha : Bool;
     public var originalHeight : Int;
     public var originalWidth : Int;
+
+	public var sizeInBytes: Int;
 
     public var hasMipMaps : Bool;
 

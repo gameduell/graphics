@@ -66,8 +66,16 @@ class Graphics
     public var mainContextWidth(get, null): Int;
     public var mainContextHeight(get, null): Int;
 
+	private var meshBytesUsed: Int;
+	private var textureBytesUsed: Int;
+	private var renderTargetBytesUsed: Int;
+
 	private function new()
-	{}
+	{
+		meshBytesUsed = 0;
+		textureBytesUsed = 0;
+		renderTargetBytesUsed = 0;
+	}
 
 	public function get_mainContextWidth(): Int
 	{
@@ -144,6 +152,7 @@ class Graphics
  	        	sharedInstance.setDefaultGraphicsState();
  	        	sharedInstance.onMainContextSizeChanged = sharedInstance.mainContext.glContext.onContextSizeChanged;
                 sharedInstance.onMainContextRecreated = sharedInstance.mainContext.glContext.onContextRecreated;
+				sharedInstance.renderTargetBytesUsed += sharedInstance.mainContextWidth * sharedInstance.mainContextHeight * 4;
  	        	callback();
  	        });
  	    });
@@ -251,6 +260,7 @@ class Graphics
 			}
 			else
 			{
+				meshBytesUsed += meshDataBuffer.data.offsetLength - meshDataBuffer.sizeOfHardwareBuffer;
 				GL.bindBuffer(bufferType, meshDataBuffer.glBuffer);
 				GL.bufferData(bufferType, meshDataBuffer.data,
 							  GLUtils.convertBufferModeToOGL(meshDataBuffer.bufferMode));
@@ -411,6 +421,19 @@ class Graphics
 		configureMipmaps(texture);
 
         texture.alreadyLoaded = true;
+
+			// TODO: make a public method
+		var bytesPerChannel: Int = 4;
+		if (texture.pixelFormat == TextureFormat.TextureFormatRGB565)
+		{
+			bytesPerChannel = 2;
+		}
+		else if (texture.pixelFormat == TextureFormat.TextureFormatA8)
+		{
+			bytesPerChannel = 1;
+		}
+		texture.sizeInBytes = texture.originalWidth * texture.originalHeight * bytesPerChannel;
+		textureBytesUsed += texture.sizeInBytes;
 	}
 
     public function updateFilledTextureData(texture: TextureData, offsetX: Int, offsetY: Int) : Void
@@ -686,15 +709,18 @@ class Graphics
         if(renderTarget.colorFormat == null) return;
 
         var format = GLDefines.RGBA;
+		var bytesPerChannel: Int = 4;
         if(renderTarget.colorFormat == ColorFormatRGB565)
         {
             format = GLDefines.RGB565;
+			bytesPerChannel = 2;
         }
 
         renderTarget.colorRenderbufferID = GL.createRenderbuffer();
         GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.colorRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, format, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.COLOR_ATTACHMENT0, GLDefines.RENDERBUFFER, renderTarget.colorRenderbufferID);
+		renderTargetBytesUsed += renderTarget.width * renderTarget.height * bytesPerChannel;
     }
 
     private function setupDepthRenderbuffer(renderTarget: RenderTargetData): Void
@@ -702,15 +728,18 @@ class Graphics
         if(renderTarget.depthFormat == null) return;
 
         var format = GLDefines.DEPTH_COMPONENT;
+		var bytesPerChannel: Int = 3;
         if(renderTarget.depthFormat == DepthFormat16)
         {
             format = GLDefines.DEPTH_COMPONENT16;
+			bytesPerChannel = 2;
         }
 
         renderTarget.depthRenderbufferID = GL.createRenderbuffer();
         GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.depthRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, format, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.DEPTH_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthRenderbufferID);
+		renderTargetBytesUsed += renderTarget.width * renderTarget.height * bytesPerChannel;
     }
 
     private function setupStencilRenderbuffer(renderTarget: RenderTargetData): Void
@@ -721,6 +750,7 @@ class Graphics
         GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.stencilRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, GLDefines.STENCIL_INDEX8, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.STENCIL_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.stencilRenderbufferID);
+		renderTargetBytesUsed += renderTarget.width * renderTarget.height;
     }
 
     private function setupDepthStencilRenderbuffer(renderTarget: RenderTargetData): Void
@@ -744,7 +774,7 @@ class Graphics
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, GLDefines.DEPTH24_STENCIL8, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.STENCIL_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthStencilRenderbufferID);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.DEPTH_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthStencilRenderbufferID);
-
+		renderTargetBytesUsed += renderTarget.width * renderTarget.height * 4;
     }
 
     public function isLoadedRenderTargetData(renderTarget: RenderTargetData): Bool
@@ -790,6 +820,7 @@ class Graphics
     {
         if(meshDataBuffer.bufferAlreadyOnHardware)
         {
+			meshBytesUsed -= meshDataBuffer.sizeOfHardwareBuffer;
             GL.deleteBuffer(meshDataBuffer.glBuffer);
             meshDataBuffer.glBuffer = GL.nullBuffer;
             meshDataBuffer.bufferAlreadyOnHardware = false;
@@ -834,6 +865,7 @@ class Graphics
     {
         if(textureData.alreadyLoaded)
         {
+			textureBytesUsed -= textureData.sizeInBytes;
             var context = getCurrentContext();
             if(context.currentActiveTextures[context.currentActiveTexture] == textureData.glTexture)
             {
@@ -861,29 +893,45 @@ class Graphics
 
     public function destroyRenderbuffers(renderTarget: RenderTargetData): Void
     {
+		var bytesPerChannel: Int = 0;
         if(renderTarget.colorRenderbufferID != GL.nullRenderbuffer)
         {
+			var bpp: Int = 4;
+			if (renderTarget.colorFormat == ColorFormatRGB565)
+			{
+				bpp = 2;
+			}
+			bytesPerChannel += bpp;
             GL.deleteRenderbuffer(renderTarget.colorRenderbufferID);
             renderTarget.colorRenderbufferID = GL.nullRenderbuffer;
         }
 
         if(renderTarget.depthRenderbufferID != GL.nullRenderbuffer)
         {
+			var bpp: Int = 3;
+			if (renderTarget.depthFormat == DepthFormat16)
+			{
+				bpp = 2;
+			}
+			bytesPerChannel += bpp;
             GL.deleteRenderbuffer(renderTarget.depthRenderbufferID);
             renderTarget.depthRenderbufferID = GL.nullRenderbuffer;
         }
 
         if(renderTarget.stencilRenderbufferID != GL.nullRenderbuffer)
         {
+			++bytesPerChannel;
             GL.deleteRenderbuffer(renderTarget.stencilRenderbufferID);
             renderTarget.stencilRenderbufferID = GL.nullRenderbuffer;
         }
 
         if(renderTarget.depthStencilRenderbufferID != GL.nullRenderbuffer)
         {
+			bytesPerChannel += 4;
             GL.deleteRenderbuffer(renderTarget.depthStencilRenderbufferID);
             renderTarget.depthStencilRenderbufferID = GL.nullRenderbuffer;
         }
+		renderTargetBytesUsed -= renderTarget.width * renderTarget.height * bytesPerChannel;
     }
 
     public function enableBlending(enabled: Bool): Void
@@ -1608,6 +1656,21 @@ class Graphics
         var context = getCurrentContext();
         return context.glContext.maxCubeTextureSize;
     }
+
+	public function getMeshMemoryUsage(): Int
+	{
+		return meshBytesUsed >> 20;
+	}
+
+	public function getTextureMemoryUsage(): Int
+	{
+		return textureBytesUsed >> 20;
+	}
+
+	public function getRenderTargetMemoryUsage(): Int
+	{
+		return renderTargetBytesUsed >> 20;
+	}
 }
 
 class DisabledGraphics extends Graphics
@@ -1702,4 +1765,7 @@ class DisabledGraphics extends Graphics
     override public function getMaxTextureSize(): Null<Int> {return null;}
     override public function getMaxRenderbufferSize(): Null<Int> {return null;}
     override public function getMaxCubeTextureSize(): Null<Int> {return null;}
+	override public function getMeshMemoryUsage(): Int {return 0;}
+	override public function getTextureMemoryUsage(): Int {return 0;}
+	override public function getRenderTargetMemoryUsage(): Int {return 0;}
 }
