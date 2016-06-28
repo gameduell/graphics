@@ -55,6 +55,10 @@ import haxe.ds.GenericStack;
 
 import msignal.Signal;
 
+import media.bitmap.BitmapData;
+import media.bitmap.BitmapComponentFormat;
+import media.bitmap.ImageFormat;
+
 class Graphics
 {
     public var onRender(default, null): Signal0;
@@ -76,6 +80,56 @@ class Graphics
 		textureBytesUsed = 0;
 		renderTargetBytesUsed = 0;
 	}
+
+    public function readTextureData(textureData: TextureData, width: UInt, height: UInt): BitmapData
+    {
+        var format: Int = -1;
+        var type:   Int = -1;
+        var sizeInBytes: Int = 0;
+
+        GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 1);
+
+        var bitmapComponentFormat: BitmapComponentFormat = BitmapComponentFormat.A8;
+
+        switch(textureData.pixelFormat)
+        {
+            case(TextureFormatRGB565):
+                format = GLDefines.RGB;
+                type = GLDefines.UNSIGNED_SHORT_5_6_5;
+                sizeInBytes = width * height * 2;
+                bitmapComponentFormat = BitmapComponentFormat.RGB565;
+
+            case(TextureFormatA8):
+                format = GLDefines.ALPHA;
+                type = GLDefines.UNSIGNED_BYTE;
+                sizeInBytes = width * height;
+                bitmapComponentFormat = BitmapComponentFormat.A8;
+
+            case(TextureFormatRGBA8888):
+                format = GLDefines.RGBA;
+                type = GLDefines.UNSIGNED_BYTE;
+                sizeInBytes = width * height * 4;
+                bitmapComponentFormat = BitmapComponentFormat.RGBA8888;
+
+            case(TextureFormatD24S8):
+                format = GLDefines.DEPTH_STENCIL;
+                type = GLDefines.UNSIGNED_INT_24_8;
+                sizeInBytes = width * height * 4;
+                bitmapComponentFormat = BitmapComponentFormat.RGBA8888;
+        }
+
+        var resultData = new Data(sizeInBytes);
+
+        GL.readPixels(0, 0, width, height, format, type, resultData);
+
+        return new BitmapData(
+            resultData,
+            width,
+            height,
+            bitmapComponentFormat,
+            ImageFormat.ImageFormatOther
+        );
+    }
 
 	public function get_mainContextWidth(): Int
 	{
@@ -1675,6 +1729,7 @@ class Graphics
 
 class DisabledGraphics extends Graphics
 {
+    override public function readTextureData(textureData: TextureData, width: UInt, height: UInt): BitmapData {return null;}
     override public function loadFilledContext(context: GraphicsContext): Void {}
     override public function isLoadedContext(context:GraphicsContext): Bool {return false;}
     override public function unloadFilledContext(context: GraphicsContext): Void {}
