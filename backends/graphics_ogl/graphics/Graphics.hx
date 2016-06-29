@@ -81,7 +81,7 @@ class Graphics
 		renderTargetBytesUsed = 0;
 	}
 
-    public function readTextureData(textureData: TextureData, width: UInt, height: UInt): BitmapData
+    public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData
     {
         var format: Int = -1;
         var type:   Int = -1;
@@ -120,7 +120,7 @@ class Graphics
 
         var resultData = new Data(sizeInBytes);
 
-        GL.readPixels(0, 0, width, height, format, type, resultData);
+        GL.readPixels(x, y, width, height, format, type, resultData);
 
         return new BitmapData(
             resultData,
@@ -1729,7 +1729,7 @@ class Graphics
 
 class DisabledGraphics extends Graphics
 {
-    override public function readTextureData(textureData: TextureData, width: UInt, height: UInt): BitmapData {return null;}
+    override public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData {return null;}
     override public function loadFilledContext(context: GraphicsContext): Void {}
     override public function isLoadedContext(context:GraphicsContext): Bool {return false;}
     override public function unloadFilledContext(context: GraphicsContext): Void {}
