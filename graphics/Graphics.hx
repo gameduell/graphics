@@ -157,6 +157,7 @@ extern class Graphics
 	public function getMeshMemoryUsage(): Int;	// MB
 	public function getTextureMemoryUsage(): Int;	// MB
 	public function getRenderTargetMemoryUsage(): Int;	// MB
+	public function getRenderTargetTextureMemoryUsage(): Int;	// MB
 
     ///######## LIMITS ########
     public function getMaxTextureSize(): Null<Int>;

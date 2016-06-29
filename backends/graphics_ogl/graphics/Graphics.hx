@@ -69,12 +69,14 @@ class Graphics
 	private var meshBytesUsed: Int;
 	private var textureBytesUsed: Int;
 	private var renderTargetBytesUsed: Int;
+	private var renderTargetTextureBytesUsed: Int;
 
 	private function new()
 	{
 		meshBytesUsed = 0;
 		textureBytesUsed = 0;
 		renderTargetBytesUsed = 0;
+		renderTargetTextureBytesUsed = 0;
 	}
 
 	public function get_mainContextWidth(): Int
@@ -152,7 +154,6 @@ class Graphics
  	        	sharedInstance.setDefaultGraphicsState();
  	        	sharedInstance.onMainContextSizeChanged = sharedInstance.mainContext.glContext.onContextSizeChanged;
                 sharedInstance.onMainContextRecreated = sharedInstance.mainContext.glContext.onContextRecreated;
-				sharedInstance.renderTargetBytesUsed += sharedInstance.mainContextWidth * sharedInstance.mainContextHeight * 4;
  	        	callback();
  	        });
  	    });
@@ -627,13 +628,17 @@ class Graphics
 
         var previousRenderTarget = context.currentRenderTargetDataStack.first();
 
-        destroyRenderbuffers(renderTarget);
-
         if(!renderTarget.alreadyLoaded)
         {
             renderTarget.framebufferID = GL.createFramebuffer();
             renderTarget.alreadyLoaded = true;
         }
+		else
+		{
+			destroyRenderbuffers(renderTarget);
+		}
+
+		var bpp: Int = 0;
 
         GL.bindFramebuffer(GLDefines.FRAMEBUFFER, renderTarget.framebufferID);
         if(renderTarget.colorTextureData != null)
@@ -643,6 +648,7 @@ class Graphics
                                     GLDefines.TEXTURE_2D,
                                     renderTarget.colorTextureData.glTexture,
                                     0);
+			bpp += 4;
         }
         else
         {
@@ -664,6 +670,7 @@ class Graphics
                                         GLDefines.TEXTURE_2D,
                                         renderTarget.depthTextureData.glTexture,
                                         0);
+				bpp += 4;
 			}
 			else
 			{
@@ -674,6 +681,7 @@ class Graphics
 	                                        GLDefines.TEXTURE_2D,
 	                                        renderTarget.depthTextureData.glTexture,
 	                                        0);
+					bpp += 3;
 	            }
 	            else
 	            {
@@ -687,6 +695,7 @@ class Graphics
 	                                        GLDefines.TEXTURE_2D,
 	                                        renderTarget.stencilTextureData.glTexture,
 	                                        0);
+					++bpp;
 	            }
 	            else
 	            {
@@ -694,6 +703,10 @@ class Graphics
 	            }
 			}
         }
+
+		var change: Int = bpp * renderTarget.width * renderTarget.height;
+		renderTargetTextureBytesUsed += change;
+		textureBytesUsed -= change;
 
         var result = GL.checkFramebufferStatus(GLDefines.FRAMEBUFFER);
         if(result != GLDefines.FRAMEBUFFER_COMPLETE)
@@ -894,6 +907,7 @@ class Graphics
     public function destroyRenderbuffers(renderTarget: RenderTargetData): Void
     {
 		var bytesPerChannel: Int = 0;
+		var textureBytesPerChannel: Int = 0;
         if(renderTarget.colorRenderbufferID != GL.nullRenderbuffer)
         {
 			var bpp: Int = 4;
@@ -905,6 +919,10 @@ class Graphics
             GL.deleteRenderbuffer(renderTarget.colorRenderbufferID);
             renderTarget.colorRenderbufferID = GL.nullRenderbuffer;
         }
+		else if (renderTarget.colorTextureData != null)
+		{
+			textureBytesPerChannel += 4;
+		}
 
         if(renderTarget.depthRenderbufferID != GL.nullRenderbuffer)
         {
@@ -917,6 +935,10 @@ class Graphics
             GL.deleteRenderbuffer(renderTarget.depthRenderbufferID);
             renderTarget.depthRenderbufferID = GL.nullRenderbuffer;
         }
+		else if (renderTarget.depthTextureData != null && renderTarget.stencilTextureData == null)
+		{
+			textureBytesPerChannel += 3;
+		}
 
         if(renderTarget.stencilRenderbufferID != GL.nullRenderbuffer)
         {
@@ -924,6 +946,10 @@ class Graphics
             GL.deleteRenderbuffer(renderTarget.stencilRenderbufferID);
             renderTarget.stencilRenderbufferID = GL.nullRenderbuffer;
         }
+		else if (renderTarget.depthTextureData == null && renderTarget.stencilTextureData != null)
+		{
+			++textureBytesPerChannel;
+		}
 
         if(renderTarget.depthStencilRenderbufferID != GL.nullRenderbuffer)
         {
@@ -931,7 +957,14 @@ class Graphics
             GL.deleteRenderbuffer(renderTarget.depthStencilRenderbufferID);
             renderTarget.depthStencilRenderbufferID = GL.nullRenderbuffer;
         }
+		else if (renderTarget.depthTextureData != null && renderTarget.stencilTextureData != null)
+		{
+			textureBytesPerChannel += 4;
+		}
 		renderTargetBytesUsed -= renderTarget.width * renderTarget.height * bytesPerChannel;
+		var change: Int = renderTarget.width * renderTarget.height * textureBytesPerChannel;
+		renderTargetTextureBytesUsed -= change;
+		textureBytesUsed += change;
     }
 
     public function enableBlending(enabled: Bool): Void
@@ -1671,6 +1704,11 @@ class Graphics
 	{
 		return renderTargetBytesUsed >> 20;
 	}
+
+	public function getRenderTargetTextureMemoryUsage(): Int
+	{
+		return renderTargetTextureBytesUsed >> 20;
+	}
 }
 
 class DisabledGraphics extends Graphics
@@ -1768,4 +1806,5 @@ class DisabledGraphics extends Graphics
 	override public function getMeshMemoryUsage(): Int {return 0;}
 	override public function getTextureMemoryUsage(): Int {return 0;}
 	override public function getRenderTargetMemoryUsage(): Int {return 0;}
+	override public function getRenderTargetTextureMemoryUsage(): Int {return 0;}
 }
