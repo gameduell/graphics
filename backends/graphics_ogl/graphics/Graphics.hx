@@ -89,31 +89,33 @@ class Graphics
         var type:   Int = -1;
         var sizeInBytes: Int = 0;
 
-        GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 1);
-
         var bitmapComponentFormat: BitmapComponentFormat = BitmapComponentFormat.A8;
 
         switch(textureData.pixelFormat)
         {
             case(TextureFormatRGB565):
+                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 2);
                 format = GLDefines.RGB;
                 type = GLDefines.UNSIGNED_SHORT_5_6_5;
                 sizeInBytes = width * height * 2;
                 bitmapComponentFormat = BitmapComponentFormat.RGB565;
 
             case(TextureFormatA8):
+                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 1);
                 format = GLDefines.ALPHA;
                 type = GLDefines.UNSIGNED_BYTE;
                 sizeInBytes = width * height;
                 bitmapComponentFormat = BitmapComponentFormat.A8;
 
             case(TextureFormatRGBA8888):
+                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 4);
                 format = GLDefines.RGBA;
                 type = GLDefines.UNSIGNED_BYTE;
                 sizeInBytes = width * height * 4;
                 bitmapComponentFormat = BitmapComponentFormat.RGBA8888;
 
             case(TextureFormatD24S8):
+                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 4);
                 format = GLDefines.DEPTH_STENCIL;
                 type = GLDefines.UNSIGNED_INT_24_8;
                 sizeInBytes = width * height * 4;
