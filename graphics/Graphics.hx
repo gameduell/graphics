@@ -164,5 +164,8 @@ extern class Graphics
     public function getMaxRenderbufferSize(): Null<Int>;
     public function getMaxCubeTextureSize(): Null<Int>;
 
+    ///######## READING BACK ########
+    public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData;
+
 	public static var maxActiveTextures : Int;
 }
