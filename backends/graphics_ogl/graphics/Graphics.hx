@@ -324,7 +324,6 @@ class Graphics
                 meshDataBuffer.sizeOfHardwareBuffer = meshDataBuffer.data.offsetLength;
 			}
 		}
-		GL.bindBuffer(bufferType, GL.nullBuffer);
 	}
 
 
