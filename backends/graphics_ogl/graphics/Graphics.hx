@@ -83,6 +83,26 @@ class Graphics
 		renderTargetTextureBytesUsed = 0;
 	}
 
+	private function setPackAlignment(value: Int): Void
+	{
+		var context = getCurrentContext();
+		if (context.packAlignment != value)
+		{
+			context.packAlignment = value;
+			GL.pixelStorei(GLDefines.PACK_ALIGNMENT, value);
+		}
+	}
+
+	private function setUnpackAlignment(value: Int): Void
+	{
+		var context = getCurrentContext();
+		if (context.unpackAlignment != value)
+		{
+			context.unpackAlignment = value;
+			GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, value);
+		}
+	}
+
     public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData
     {
         var format: Int = -1;
@@ -94,28 +114,28 @@ class Graphics
         switch(textureData.pixelFormat)
         {
             case(TextureFormatRGB565):
-                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 2);
+				setPackAlignment(2);
                 format = GLDefines.RGB;
                 type = GLDefines.UNSIGNED_SHORT_5_6_5;
                 sizeInBytes = width * height * 2;
                 bitmapComponentFormat = BitmapComponentFormat.RGB565;
 
             case(TextureFormatA8):
-                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 1);
+				setPackAlignment(1);
                 format = GLDefines.ALPHA;
                 type = GLDefines.UNSIGNED_BYTE;
                 sizeInBytes = width * height;
                 bitmapComponentFormat = BitmapComponentFormat.A8;
 
             case(TextureFormatRGBA8888):
-                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 4);
+				setPackAlignment(4);
                 format = GLDefines.RGBA;
                 type = GLDefines.UNSIGNED_BYTE;
                 sizeInBytes = width * height * 4;
                 bitmapComponentFormat = BitmapComponentFormat.RGBA8888;
 
             case(TextureFormatD24S8):
-                GL.pixelStorei(GLDefines.PACK_ALIGNMENT, 4);
+                setPackAlignment(4);
                 format = GLDefines.DEPTH_STENCIL;
                 type = GLDefines.UNSIGNED_INT_24_8;
                 sizeInBytes = width * height * 4;
@@ -561,19 +581,19 @@ class Graphics
 		switch(textureFormat)
 		{
 			case(TextureFormatRGB565):
-				GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 2);
+				setUnpackAlignment(2);
 				GL.texImage2D(textureType, 0, GLDefines.RGB, width, height, 0, GLDefines.RGB, GLDefines.UNSIGNED_SHORT_5_6_5, data);
 
 			case(TextureFormatA8):
-				GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 1);
+				setUnpackAlignment(1);
 				GL.texImage2D(textureType, 0, GLDefines.ALPHA, width, height, 0, GLDefines.ALPHA, GLDefines.UNSIGNED_BYTE, data);
 
 			case(TextureFormatRGBA8888):
-				GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
+				setUnpackAlignment(4);
 				GL.texImage2D(textureType, 0, GLDefines.RGBA, width, height, 0, GLDefines.RGBA, GLDefines.UNSIGNED_BYTE, data);
 
 			case(TextureFormatD24S8):
-				GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
+				setUnpackAlignment(4);
 				GL.texImage2D(textureType, 0, GLDefines.DEPTH_STENCIL, width, height, 0, GLDefines.DEPTH_STENCIL, GLDefines.UNSIGNED_INT_24_8, data);
 		}
 	}
@@ -583,19 +603,19 @@ class Graphics
         switch(textureFormat)
         {
             case(TextureFormatRGB565):
-                GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 2);
+                setUnpackAlignment(2);
                 GL.texSubImage2D(textureType, 0, offsetX, offsetY, width, height, GLDefines.RGB, GLDefines.UNSIGNED_SHORT_5_6_5, data);
 
             case(TextureFormatA8):
-                GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 1);
+                setUnpackAlignment(1);
                 GL.texSubImage2D(textureType, 0, offsetX, offsetY, width, height, GLDefines.ALPHA, GLDefines.UNSIGNED_BYTE, data);
 
             case(TextureFormatRGBA8888):
-                GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
+                setUnpackAlignment(4);
                 GL.texSubImage2D(textureType, 0, offsetX, offsetY, width, height, GLDefines.RGBA, GLDefines.UNSIGNED_BYTE, data);
 
 			case(TextureFormatD24S8):
-				GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
+				setUnpackAlignment(4);
 				GL.texImage2D(textureType, 0, GLDefines.DEPTH_STENCIL, width, height, 0, GLDefines.DEPTH_STENCIL, GLDefines.UNSIGNED_INT_24_8, data);
         }
     }
@@ -672,6 +692,26 @@ class Graphics
 	    configureFilteringMode(texture);
 	}
 
+	private function bindFramebuffer(framebuffer: GLFramebuffer): Void
+	{
+		var context = getCurrentContext();
+		if (context.currentFrameBuffer != framebuffer)
+		{
+			GL.bindFramebuffer(GLDefines.FRAMEBUFFER, framebuffer);
+			context.currentFrameBuffer = framebuffer;
+		}
+	}
+
+	private function bindRenderbuffer(renderbuffer: GLRenderbuffer): Void
+	{
+		var context = getCurrentContext();
+		if (context.currentRenderBuffer != renderbuffer)
+		{
+			GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderbuffer);
+			context.currentRenderBuffer = renderbuffer;
+		}
+	}
+
     public function loadFilledRenderTargetData(renderTarget: RenderTargetData): Void
     {
         var context = getCurrentContext();
@@ -695,7 +735,7 @@ class Graphics
 
 		var bpp: Int = 0;
 
-        GL.bindFramebuffer(GLDefines.FRAMEBUFFER, renderTarget.framebufferID);
+        bindFramebuffer(renderTarget.framebufferID);
         if(renderTarget.colorTextureData != null)
         {
             GL.framebufferTexture2D(GLDefines.FRAMEBUFFER,
@@ -769,7 +809,7 @@ class Graphics
             trace("Framebuffer error: 0x%x", result);
         }
 
-        GL.bindFramebuffer(GLDefines.FRAMEBUFFER, previousRenderTarget.framebufferID);
+        bindFramebuffer(previousRenderTarget.framebufferID);
     }
 
     private function setupColorRenderbuffer(renderTarget: RenderTargetData): Void
@@ -785,7 +825,7 @@ class Graphics
         }
 
         renderTarget.colorRenderbufferID = GL.createRenderbuffer();
-        GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.colorRenderbufferID);
+        bindRenderbuffer(renderTarget.colorRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, format, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.COLOR_ATTACHMENT0, GLDefines.RENDERBUFFER, renderTarget.colorRenderbufferID);
 		renderTargetBytesUsed += renderTarget.width * renderTarget.height * bytesPerChannel;
@@ -804,7 +844,7 @@ class Graphics
         }
 
         renderTarget.depthRenderbufferID = GL.createRenderbuffer();
-        GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.depthRenderbufferID);
+        bindRenderbuffer(renderTarget.depthRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, format, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.DEPTH_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthRenderbufferID);
 		renderTargetBytesUsed += renderTarget.width * renderTarget.height * bytesPerChannel;
@@ -815,7 +855,7 @@ class Graphics
         if(renderTarget.stencilFormat == null) return;
 
         renderTarget.stencilRenderbufferID = GL.createRenderbuffer();
-        GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.stencilRenderbufferID);
+        bindRenderbuffer(renderTarget.stencilRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, GLDefines.STENCIL_INDEX8, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.STENCIL_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.stencilRenderbufferID);
 		renderTargetBytesUsed += renderTarget.width * renderTarget.height;
@@ -838,7 +878,7 @@ class Graphics
         }
 
         renderTarget.depthStencilRenderbufferID = GL.createRenderbuffer();
-        GL.bindRenderbuffer(GLDefines.RENDERBUFFER, renderTarget.depthStencilRenderbufferID);
+        bindRenderbuffer(renderTarget.depthStencilRenderbufferID);
         GL.renderbufferStorage(GLDefines.RENDERBUFFER, GLDefines.DEPTH24_STENCIL8, renderTarget.width, renderTarget.height);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.STENCIL_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthStencilRenderbufferID);
         GL.framebufferRenderbuffer(GLDefines.FRAMEBUFFER, GLDefines.DEPTH_ATTACHMENT, GLDefines.RENDERBUFFER, renderTarget.depthStencilRenderbufferID);
@@ -1216,11 +1256,7 @@ class Graphics
         var context = getCurrentContext();
 
         var framebuffer = renderTarget.framebufferID;
-
-        if(context.currentRenderTargetDataStack.first().framebufferID != framebuffer)
-        {
-            GL.bindFramebuffer(GLDefines.FRAMEBUFFER, framebuffer);
-        }
+        bindFramebuffer(framebuffer);
 
         context.currentRenderTargetDataStack.add(renderTarget);
     }
@@ -1237,11 +1273,11 @@ class Graphics
 
             if(nextRenderTarget == context.defaultRenderTargetData)
             {
-                GL.bindFramebuffer(GLDefines.FRAMEBUFFER, context.defaultRenderTargetData.framebufferID);
+                bindFramebuffer(context.defaultRenderTargetData.framebufferID);
             }
             else
             {
-                GL.bindFramebuffer(GLDefines.FRAMEBUFFER, context.currentRenderTargetDataStack.first().framebufferID);
+                bindFramebuffer(context.currentRenderTargetDataStack.first().framebufferID);
             }
         }
 

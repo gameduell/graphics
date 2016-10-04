@@ -23,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
 package graphics;
 
 import types.Color4F;
@@ -67,6 +67,10 @@ class GraphicsContext
     public var currentFaceCullingMode : Null<FaceCullingMode>;
     public var currentLineWidth : Null<Float>;
     public var currentDepthTesting : Null<Bool>;
+	public var currentFrameBuffer: GLFramebuffer;
+	public var currentRenderBuffer: GLRenderbuffer;
+	public var packAlignment: Int;
+	public var unpackAlignment: Int;
 
     public var currentUniformTypeSingleInt: Int = -1;
     public var currentClearColor: Color4F;
@@ -107,6 +111,10 @@ class GraphicsContext
     public function rebindDefaultBackbuffer() : Void
     {
         defaultRenderTargetData.framebufferID = GL.getParameter(GLDefines.FRAMEBUFFER_BINDING);
+		currentFrameBuffer = defaultRenderTargetData.framebufferID;
+		currentRenderBuffer = GL.getParameter(GLDefines.RENDERBUFFER_BINDING);
+		packAlignment = GL.getParameter(GLDefines.PACK_ALIGNMENT);
+		unpackAlignment = GL.getParameter(GLDefines.UNPACK_ALIGNMENT);
 
         while(!currentRenderTargetDataStack.isEmpty())
         {
