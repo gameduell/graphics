@@ -1763,6 +1763,12 @@ class Graphics
         GL.viewport(x,y,width,height);
     }
 
+	public function getMaxVertexUniformVectors(): Int
+	{
+		var context = getCurrentContext();
+		return context.glContext.maxVertexUniformVectors;
+	}
+
     public function getMaxTextureSize(): Null<Int>
     {
         var context = getCurrentContext();
@@ -1899,4 +1905,5 @@ class DisabledGraphics extends Graphics
 	override public function getTextureMemoryUsage(): Int {return 0;}
 	override public function getRenderTargetMemoryUsage(): Int {return 0;}
 	override public function getRenderTargetTextureMemoryUsage(): Int {return 0;}
+	override public function getMaxVertexUniformVectors(): Int {return 0;}
 }

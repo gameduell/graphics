@@ -163,6 +163,7 @@ extern class Graphics
     public function getMaxTextureSize(): Null<Int>;
     public function getMaxRenderbufferSize(): Null<Int>;
     public function getMaxCubeTextureSize(): Null<Int>;
+	public function getMaxVertexUniformVectors(): Int;
 
     ///######## READING BACK ########
     public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData;
