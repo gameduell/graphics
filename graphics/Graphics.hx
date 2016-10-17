@@ -153,12 +153,20 @@ extern class Graphics
     ///######## VIEWPORT ########
     public function setViewPort(x: Int, y: Int, width: Int, height: Int): Void;
 
+	///######## STATS ########
+	public function getMeshMemoryUsage(): Int;	// MB
+	public function getTextureMemoryUsage(): Int;	// MB
+	public function getRenderTargetMemoryUsage(): Int;	// MB
+	public function getRenderTargetTextureMemoryUsage(): Int;	// MB
+
     ///######## LIMITS ########
     public function getMaxTextureSize(): Null<Int>;
     public function getMaxRenderbufferSize(): Null<Int>;
     public function getMaxCubeTextureSize(): Null<Int>;
+	public function getMaxVertexUniformVectors(): Int;
+
+    ///######## READING BACK ########
+    public function readTextureData(textureData: TextureData, x: UInt, y: UInt, width: UInt, height: UInt): BitmapData;
 
 	public static var maxActiveTextures : Int;
 }
-
-
