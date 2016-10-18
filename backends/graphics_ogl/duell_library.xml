@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <library xmlns="duell">
 
-	<duelllib name="opengl" version="6.7.1-rc" />
-    <duelllib name="media" version="3.3.0-rc" />
+	<duelllib name="opengl" version="6.7.1-rc+" />
+    <duelllib name="media" version="3.3.0-rc+" />
 
 </library>
