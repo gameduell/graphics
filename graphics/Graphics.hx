@@ -39,6 +39,7 @@ import graphics.TextureData;
 import types.DataType;
 import types.Data;
 
+import media.bitmap.BitmapData;
 
 extern class Graphics
 {
